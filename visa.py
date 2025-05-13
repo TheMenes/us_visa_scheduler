@@ -31,6 +31,8 @@ SCHEDULE_ID = config['PERSONAL_INFO']['SCHEDULE_ID']
 # Target Period:
 PRIOD_START = config['PERSONAL_INFO']['PRIOD_START']
 PRIOD_END = config['PERSONAL_INFO']['PRIOD_END']
+APPLICANT_1_ID = config['PERSONAL_INFO']['APPLICANT_1_ID']
+APPLICANT_2_ID = config['PERSONAL_INFO']['APPLICANT_2_ID']
 # Embassy Section:
 YOUR_EMBASSY = config['PERSONAL_INFO']['YOUR_EMBASSY']
 EMBASSY = Embassies[YOUR_EMBASSY][0]
@@ -71,7 +73,10 @@ HUB_ADDRESS = config['CHROMEDRIVER']['HUB_ADDRESS']
 
 # Global variable
 SIGN_IN_LINK = f"https://ais.usvisa-info.com/{EMBASSY}/niv/users/sign_in"
-APPOINTMENT_URL = f"https://ais.usvisa-info.com/{EMBASSY}/niv/schedule/{SCHEDULE_ID}/appointment"
+if APPLICANT_2_ID:
+    APPOINTMENT_URL = f"https://ais.usvisa-info.com/{EMBASSY}/niv/schedule/{SCHEDULE_ID}/appointment?applicants%5B%5D={APPLICANT_1_ID}&applicants%5B%5D={APPLICANT_2_ID}&confirmed_limit_message=1&commit=Continue"
+else:
+    APPOINTMENT_URL = f"https://ais.usvisa-info.com/{EMBASSY}/niv/schedule/{SCHEDULE_ID}/appointment"
 DATE_URL = f"https://ais.usvisa-info.com/{EMBASSY}/niv/schedule/{SCHEDULE_ID}/appointment/days/{FACILITY_ID}.json?appointments[expedite]=false"
 TIME_URL = f"https://ais.usvisa-info.com/{EMBASSY}/niv/schedule/{SCHEDULE_ID}/appointment/times/{FACILITY_ID}.json?date=%s&appointments[expedite]=false"
 SIGN_OUT_LINK = f"https://ais.usvisa-info.com/{EMBASSY}/niv/users/sign_out"
@@ -191,7 +196,7 @@ def browser_reschedule(date):
         "Cookie": "_yatri_session=" + driver.get_cookie("_yatri_session")["value"]
     }
     data = {
-        "utf8": driver.find_element(by=By.NAME, value='utf8').get_attribute('value'),
+        #"utf8": driver.find_element(by=By.NAME, value='utf8').get_attribute('value'),
         "authenticity_token": driver.find_element(by=By.NAME, value='authenticity_token').get_attribute('value'),
         "confirmed_limit_message": driver.find_element(by=By.NAME, value='confirmed_limit_message').get_attribute('value'),
         "use_consulate_appointment_capacity": driver.find_element(by=By.NAME, value='use_consulate_appointment_capacity').get_attribute('value'),
@@ -200,7 +205,7 @@ def browser_reschedule(date):
         "appointments[consulate_appointment][time]": time,
     }
     r = requests.post(APPOINTMENT_URL, headers=headers, data=data)
-    if (r.text.find('Successfully Scheduled') != -1):
+    if (r.text.lower().find('Successfully Scheduled') != -1):
         title = "SUCCESS"
         msg = f"Rescheduled Successfully! {date} {time}"
     else:
@@ -288,7 +293,7 @@ if __name__ == "__main__":
             date = get_better_date(dates)
             logging.info(f"get_available_date(dates) = {date}")
             if date:
-                msg = "Found a better date. Attempting to reschedule automatically..."
+                msg = f"Found a better date = {date}. Attempting to reschedule automatically..."
                 print(msg)
                 logging.info(msg)
                 send_notification("FOUND", msg)
@@ -317,7 +322,7 @@ if __name__ == "__main__":
                 time.sleep(WORK_COOLDOWN_TIME * SECONDS_IN_HOUR)
             else:
                 sleep_duration = random.randint(
-                    RETRY_TIME_L_BOUND, RETRY_TIME_U_BOUND)
+                    int(RETRY_TIME_L_BOUND), int(RETRY_TIME_U_BOUND))
                 msg = f"Wait {sleep_duration/SECONDS_IN_MINUTE:.2f} minutes before next check"
                 print(msg)
                 logging.info(msg)
